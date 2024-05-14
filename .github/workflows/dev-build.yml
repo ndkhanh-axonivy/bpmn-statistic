@@ -6,9 +6,13 @@ on:
     branches:
       - master
   workflow_dispatch:
+
+env:
+  DEPLOY_ENGINE_APP: ${{ vars.DEPLOY_ENGINE_APP }}
+
 jobs:
   dev_build:
-    runs-on: ubuntu-latest
+    runs-on: [market-runner]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3
@@ -23,21 +27,34 @@ jobs:
           overwrite-settings: false
       - name: Build maven
         id: build-maven
+        shell: sh
         run: |
           modules=("bpmn-statistic" "bpmn-statistic-demo")
+          builtModules=()
+          filesChange=$(git diff --name-only HEAD HEAD^)
           for module in ${modules[@]}
           do
-            mvn clean install -f $module/pom.xml
+            if [[ "$filesChange" =~ .*"$module".* || "${{github.event.inputs.modulesMustBeBuilt}}" =~ .*"$module".* ]]; then
+              builtModules+=("$module")
+              mvn clean install -f $module/pom.xml
+            fi
           done
-          echo BUILT_MODULES=${modules[@]} >> $GITHUB_OUTPUT
+          echo BUILT_MODULES=${builtModules[@]} >> $GITHUB_OUTPUT
       - name: Archive build artifact
-        run: |
-          zip -r bpmn-statistic-artifacts.zip */target/*.iar
-      - name: Upload build artifact
         uses: actions/upload-artifact@v3
         with:
           name: bpmn-statistic-artifacts
-          path: bpmn-statistic-artifacts.zip
+          path: |
+            */target/*.iar
       - name: Deploy build
+        shell: sh
         run: |
-          curl --location 'http://10.193.8.78:8080/system/api/apps/BPMN-STATISTIC' --header 'X-Requested-By: ivy' --header 'Authorization: Basic b2N0b3B1czpXNHc0QENIJA==' --form 'fileToDeploy=@"bpmn-statistic-artifacts.zip"' --form 'deploymentOptions="deploy.options.yaml"'
+          engineDir=/var/tools/ivy/10
+          engine=${{github.event.inputs.engine}}
+          if [[ ! -z $engine ]]; then
+            engineDir=c:/tools/ivy-server/${engine}/engine
+          fi
+          for module in ${builtModules[@]}
+          do
+            mvn com.axonivy.ivy.ci:project-build-plugin:10.0.14:deploy-to-engine -f $module/pom.xml -Divy.deploy.engine.app=${{env.DEPLOY_ENGINE_APP}} -Divy.deploy.engine.dir=${engineDir} -Divy.test.engine=MODIFY_EXISTING -Divy.deploy.target.version=RELEASED -Divy.deploy.timeout.seconds=120
+          done
