@@ -42,8 +42,4 @@ jobs:
           path: bpmn-statistic-artifacts.zip
       - name: Deploy build
         run: |
-          mvn com.axonivy.ivy.ci:project-build-plugin:10.0.14:deploy-to-engine
-          -Divy.deploy.file=bpmn-statistic-artifacts.zip
-          -Divy.deploy.method=HTTP
-          -Divy.deploy.engine.url=http://10.193.8.78:8080/ivy
-          -Divy.deploy.engine.app=BPMN
+          mvn com.axonivy.ivy.ci:project-build-plugin:10.0.14:deploy-to-engine -Divy.deploy.file=bpmn-statistic-artifacts.zip -Divy.deploy.method=HTTP -Divy.deploy.engine.url=http://10.193.8.78:8080/ivy -Divy.deploy.engine.app=BPMN
