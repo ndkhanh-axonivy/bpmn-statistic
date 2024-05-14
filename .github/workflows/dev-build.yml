@@ -40,8 +40,4 @@ jobs:
           path: bpmn-statistic-artifacts.zip
       - name: Deploy build
         run: |
-          curl --location 'http://10.193.8.78:8080/system/api/apps/BPMN-STATISTIC' \
-          --header 'X-Requested-By: ivy' \
-          --header 'Authorization: Basic b2N0b3B1czpXNHc0QENIJA==' \
-          --header 'Cookie: JSESSIONID=961EBE8FC3011F9B096B30245993EDB2' \
-          --form 'fileToDeploy=@"bpmn-statistic.zip"'
+          curl --location 'http://10.193.8.78:8080/system/api/apps/BPMN-STATISTIC' --header 'X-Requested-By: ivy' --header 'Authorization: Basic b2N0b3B1czpXNHc0QENIJA==' --form 'fileToDeploy=@"bpmn-statistic-artifacts.zip"' --form 'deploymentOptions="deploy.options.yaml"'
