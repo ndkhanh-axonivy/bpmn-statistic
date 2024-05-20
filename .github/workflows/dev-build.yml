@@ -6,6 +6,13 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      application:
+        description: "Define application to upload. By default, the artifact will be uploaded to BPMN-STATISTIC app"
+        default: "BPMN-STATISTIC"
+
+env:
+  DEPLOY_ENGINE_APP: ${{ github.event.inputs.application || vars.DEPLOY_ENGINE_APP }}
 
 jobs:
   dev_build:
@@ -22,3 +29,26 @@ jobs:
           distribution: "adopt"
           cache: "maven"
           overwrite-settings: false
+      - name: Build maven
+        id: build-maven
+        run: |
+          modules=("bpmn-statistic" "bpmn-statistic-demo")
+          for module in ${modules[@]}
+          do
+            mvn clean install -f $module/pom.xml
+          done
+          echo BUILT_MODULES=${modules[@]} >> $GITHUB_OUTPUT
+      - name: Archive build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: market-artifacts
+          path: |
+            */target/*.iar
+      - name: Deploy build
+        run: |
+          buildPluginVersion=$(xml sel -t -m "//_:project/_:properties" -v _:build.plugin.version bpmn-statistic/pom.xml)
+          engineDir=/tools/ivy-server/ricoh_dev/engine
+          for module in ${modules[@]}
+          do
+            mvn com.axonivy.ivy.ci:project-build-plugin:$buildPluginVersion:deploy-to-engine -f $module/pom.xml -Divy.deploy.engine.app=${{env.DEPLOY_ENGINE_APP}} -Divy.deploy.engine.dir=${engineDir} -Divy.test.engine=MODIFY_EXISTING -Divy.deploy.target.version=RELEASED -Divy.deploy.timeout.seconds=120
+          done
