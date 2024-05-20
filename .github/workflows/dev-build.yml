@@ -9,7 +9,7 @@ on:
 
 jobs:
   dev_build:
-    runs-on: self-hosted
+    runs-on: [mmm]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3
