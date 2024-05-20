@@ -9,7 +9,7 @@ on:
 
 jobs:
   dev_build:
-    runs-on: [mmm]
+    runs-on: market-runner
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3
